@@ -1,4 +1,4 @@
-package main
+package dht
 
 // Defines the things you need to be a distribute-hash-table
 type Dht interface {

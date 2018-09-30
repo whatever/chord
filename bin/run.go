@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	dht "github.com/internet-research-labs/chord"
 	_ "log"
 	"time"
 )
@@ -16,7 +17,7 @@ func main() {
 	flag.Parse()
 
 	// x
-	x := ChordTable{
+	x := dht.ChordTable{
 		Port: *listen,
 	}
 
