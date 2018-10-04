@@ -39,15 +39,13 @@ func main() {
 		done <- true
 	})
 
-	for _, v := range addresses {
-		fmt.Println(dht.Address(v))
-	}
-
+	// ...
 	server, err := dht.NewChordServer(*port)
 
 	// Activate server conditional on what args are passed in
 	if err == nil {
 		server.Listen()
+		server.Join()
 		defer server.Close()
 	} else {
 		done <- true
@@ -60,23 +58,4 @@ func main() {
 	// Block
 	<-done
 	fmt.Println("<EO> Things are properly closing")
-
-	/*
-		// x
-		x := dht.ChordTable{
-			Port: *listen,
-		}
-
-		// Listen for connections
-		x.Listen()
-
-		// Join and close
-		x.Join()
-		defer x.Close()
-
-		time.Sleep(5 * time.Second)
-
-		// Ayy
-		fmt.Println(*addr, *port, x)
-	*/
 }
