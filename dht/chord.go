@@ -1,6 +1,7 @@
 package dht
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -9,6 +10,7 @@ import (
 type ChordTable struct {
 	server net.Listener
 	Port   int
+	Alive  bool
 }
 
 type ChordTables []ChordTable
@@ -34,6 +36,7 @@ func (self *ChordTable) Listen() {
 	}
 
 	self.server = server
+	self.Alive = true
 
 	// Turn on TCP listen-loop in the background
 	go func() {
@@ -71,6 +74,10 @@ func (self *ChordTable) Put(key string) (string, bool) {
 }
 
 // Create Node in a Chord Table
-func NewChordTable() *ChordTable {
-	return nil
+func NewChordServer(port int) (*ChordTable, error) {
+	if port > 0 {
+		table := ChordTable{Port: port}
+		return &table, nil
+	}
+	return nil, errors.New("Things could be better")
 }
