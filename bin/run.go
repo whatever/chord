@@ -8,17 +8,15 @@ import (
 	"os"
 	"os/signal"
 	"strings"
-	"time"
 )
 
 // Setup interrupt handler quietly in the background
-func setupInterruptHandler() {
+func setupInterruptHandler(f func()) {
 	interrupts := make(chan os.Signal, 1)
 	signal.Notify(interrupts, os.Interrupt)
 	go func() {
 		<-interrupts
-		fmt.Println("[Interrupt caught... let's clean things up quietly]")
-		os.Exit(0)
+		f()
 	}()
 }
 
@@ -28,14 +26,18 @@ func main() {
 	// Parse command-line args
 	seeds := flag.String("seeds", "0.0.0.0:8080", "comma-delimeted list of bootstrap locations")
 	addr := flag.String("addr", "0.0.0.0", "ip-address")
-	port := flag.Int("port", -1, "port")
-	listen := flag.Int("listen", 8081, "port")
+	port := flag.Int("l", -1, "port")
 	flag.Parse()
 
 	addresses := strings.Split(*seeds, ",")
 
+	// Setup blocking channel
+	done := make(chan bool, 1)
+
 	// Setup interrupt handler quietly in the background
-	setupInterruptHandler()
+	setupInterruptHandler(func() {
+		done <- true
+	})
 
 	for _, v := range addresses {
 		fmt.Println(dht.Address(v))
@@ -43,29 +45,22 @@ func main() {
 
 	server, err := dht.NewChordServer(*port)
 
+	// Activate server conditional on what args are passed in
 	if err == nil {
 		server.Listen()
 		defer server.Close()
 	} else {
-		fmt.Println(err)
+		done <- true
 	}
 
+	// Shutup, golang
 	_ = addr
 	_ = port
-	x := dht.ChordTable{Port: *listen}
-	_ = x
 
-	time.Sleep(1 * time.Second)
+	// Block
+	<-done
+	fmt.Println("<EO> Things are properly closing")
 
-	if server != nil {
-		for i := 0; i < 10; i++ {
-
-			time.Sleep(1 * time.Second)
-			fmt.Println("TICK", server.Alive)
-		}
-	}
-
-	fmt.Println("<EO>")
 	/*
 		// x
 		x := dht.ChordTable{
