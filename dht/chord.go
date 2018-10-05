@@ -10,15 +10,39 @@ import (
 	"strings"
 )
 
+// A representation of a node - contains and ID and an address
+type ChordNode struct {
+	Id   string
+	Ip   string
+	Port int
+}
+
+// Return a string representation of a node
+func (self *ChordNode) String() string {
+	if self == nil {
+		return "???:???"
+	}
+	return "---.---"
+}
+
+// An actual table that one can use to get data
 type ChordTable struct {
 	server net.Listener
 	seeds  DhtAddresses
 	Id     string
 	Port   int
 	Alive  bool
+	Next   ChordNode
+	Prev   ChordNode
 }
 
+// Plural of ChordTable
 type ChordTables []ChordTable
+
+// Return info about myself
+func (self *ChordTable) Info() string {
+	return self.Id
+}
 
 // Reads and closes 1024 bytes of TCP connection
 // - It routes traffic to appropriate subhandler
@@ -31,10 +55,11 @@ func (self *ChordTable) handle(conn net.Conn) {
 
 	switch msg {
 	case "who":
-		n, err := conn.Write(([]byte)(self.Id))
-		log.Println(">>", n, err)
+		n, err := conn.Write(([]byte)(self.Info()))
+		log.Println(self.Id, ":Received message", n, err)
 	default:
-		log.Printf("I don't recognize message \"%s\"\n", msg)
+		n, err := conn.Write([]byte("IGNORED"))
+		log.Println(self.Id, ":IGNORED message", n, err)
 	}
 
 	conn.Close()
@@ -70,10 +95,46 @@ func (self ChordTable) String() string {
 	return fmt.Sprintf("[%s // %d]", self.Id, self.Port)
 }
 
+func readConn(conn net.Conn) string {
+	buff := make([]byte, 1024)
+	n, err := conn.Read(buff)
+	if err != nil {
+		return ""
+	}
+	return string(buff)[0:n]
+}
+
+// Send message to DHT
+func sendMessage(addr DhtAddress, message string) (string, error) {
+	conn, err := net.Dial("tcp", addr.String())
+
+	if err != nil {
+		return "", errors.New("Could not connect to address")
+	}
+
+	conn.Write([]byte(message))
+
+	buff := make([]byte, 1024)
+	n, err := conn.Read(buff)
+
+	if err != nil {
+		return "", errors.New("Could not read from address")
+	}
+
+	return string(buff)[0:n], nil
+}
+
+func hello(addr DhtAddress) {
+	resp, err := sendMessage(addr, "who")
+	log.Println("Got response: ", resp, err)
+}
+
 // Join a chord table
 // - It returns a string of node ids
 func (self *ChordTable) Join() ([]string, bool) {
-	fmt.Println(*self, "::", self.seeds)
+	for _, addr := range self.seeds {
+		hello(addr)
+	}
 	return []string{"red"}, true
 }
 

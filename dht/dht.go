@@ -1,6 +1,7 @@
 package dht
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 )
@@ -40,6 +41,10 @@ func Address(s string) DhtAddress {
 	}
 
 	return DhtAddress{address, port}
+}
+
+func (self *DhtAddress) String() string {
+	return fmt.Sprintf("%s:%d", self.Ip, self.Port)
 }
 
 // Define type plural of DhtAddress
