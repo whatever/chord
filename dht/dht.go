@@ -8,7 +8,7 @@ import (
 // Defines the things you need to be a distribute-hash-table
 type Dht interface {
 	Listen()
-	Join(string) ([]string, bool)
+	Join([]DhtAddress) ([]string, bool)
 	Close()
 	Get(string) (string, bool)
 	Put(string) (string, bool)
@@ -41,3 +41,6 @@ func Address(s string) DhtAddress {
 
 	return DhtAddress{address, port}
 }
+
+// Define type plural of DhtAddress
+type DhtAddresses []DhtAddress

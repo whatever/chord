@@ -4,10 +4,12 @@ import (
 	"flag"
 	"fmt"
 	dht "github.com/internet-research-labs/chord/dht"
-	_ "log"
+	"log"
+	"math/rand"
 	"os"
 	"os/signal"
 	"strings"
+	"time"
 )
 
 // Setup interrupt handler quietly in the background
@@ -20,16 +22,23 @@ func setupInterruptHandler(f func()) {
 	}()
 }
 
+// Return a list of addresses
+func getAddresses(adds []string) dht.DhtAddresses {
+	addresses := []dht.DhtAddress{}
+	for _, v := range adds {
+		addresses = append(addresses, dht.Address(v))
+	}
+	return addresses
+}
+
 // Main
 func main() {
+	rand.Seed(time.Now().UTC().UnixNano())
 
 	// Parse command-line args
-	seeds := flag.String("seeds", "0.0.0.0:8080", "comma-delimeted list of bootstrap locations")
-	addr := flag.String("addr", "0.0.0.0", "ip-address")
+	seeds := flag.String("seeds", "", "comma-delimeted list of bootstrap locations")
 	port := flag.Int("l", -1, "port")
 	flag.Parse()
-
-	addresses := strings.Split(*seeds, ",")
 
 	// Setup blocking channel
 	done := make(chan bool, 1)
@@ -39,11 +48,21 @@ func main() {
 		done <- true
 	})
 
-	// ...
-	server, err := dht.NewChordServer(*port)
+	// Point to self
+	if *seeds == "" {
+		tmp := fmt.Sprintf(":%d", *port)
+		seeds = &tmp
+	}
+
+	// Initialize server
+	server, err := dht.NewChordServer(
+		*port,
+		getAddresses(strings.Split(*seeds, ",")),
+	)
 
 	// Activate server conditional on what args are passed in
 	if err == nil {
+		log.Printf("Listening on %d\n", *port)
 		server.Listen()
 		server.Join()
 		defer server.Close()
@@ -51,11 +70,9 @@ func main() {
 		done <- true
 	}
 
-	// Shutup, golang
-	_ = addr
-	_ = port
-
 	// Block
 	<-done
-	fmt.Println("<EO> Things are properly closing")
+
+	// Exit message
+	log.Println("<EO> Things are properly closing")
 }
