@@ -52,15 +52,26 @@ func (self *ChordTable) handle(conn net.Conn) {
 	// Note that we need to truncate the byte array
 	msg := strings.TrimRight(string(buf[0:length]), "\n\r")
 
+	var n int
+	var err error
+
 	switch msg {
 	case "who":
-		n, err := conn.Write(([]byte)(self.Info()))
-		log.Println(self.Id, ":Received message", n, err)
+		n, err = conn.Write(([]byte)(self.Info()))
+	case "ping":
+		n, err = conn.Write(([]byte)(self.Info()))
+	case "put":
+		n, err = conn.Write(([]byte)("-"))
+	case "get":
+		n, err = conn.Write(([]byte)("-"))
 	default:
-		n, err := conn.Write([]byte("IGNORED"))
-		log.Println(self.Id, ":IGNORED message", n, err)
+		n, err = conn.Write([]byte("IGNORED"))
 	}
 
+	// {}}{
+	log.Println(self.Id, ":Received message:", msg, n, err)
+
+	// -_-
 	conn.Close()
 }
 
@@ -90,10 +101,12 @@ func (self *ChordTable) Listen() {
 	}()
 }
 
+// String outputs a human readable representation of the ChordTable
 func (self ChordTable) String() string {
 	return fmt.Sprintf("[%s // %d]", self.Id, self.Port)
 }
 
+// readConn returns a message <= 1024 bytes from a TCP connection
 func readConn(conn net.Conn) string {
 	buff := make([]byte, 1024)
 	n, err := conn.Read(buff)
@@ -123,6 +136,7 @@ func sendMessage(addr DhtAddress, message string) (string, error) {
 	return string(buff)[0:n], nil
 }
 
+// hello pings a server
 func hello(addr DhtAddress) {
 	resp, err := sendMessage(addr, "who")
 	log.Println("Got response: ", resp, err)
@@ -137,18 +151,18 @@ func (self *ChordTable) Join() ([]string, bool) {
 	return []string{"red"}, true
 }
 
-// ...
+// Close closes the TCP server
 func (self *ChordTable) Close() {
 	log.Println("Closing")
 	go self.server.Close()
 }
 
-// Get
+// Get returns the value of an entry
 func (self *ChordTable) Get(key string) (string, bool) {
 	return "whatever", true
 }
 
-// Put records
+// Put sets the value of a record on the DHT
 func (self *ChordTable) Put(key string) (string, bool) {
 	return "whatever", true
 }
