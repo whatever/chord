@@ -26,11 +26,6 @@ func GetUUID() string {
 	return "uh oh uh oh bitches hoppin' in my tahoe"
 }
 
-// x_x
-func x_x() {
-	fmt.Println("...")
-}
-
 // GetAddress returns a hardware address for the named network adapter
 // XXX: Figure out if "network adapter" is the correct term here
 func GetAddress(name string) (string, error) {
