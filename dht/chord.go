@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"math/rand"
 	"net"
 	"strings"
 )
@@ -171,7 +170,7 @@ func NewChordServer(port int, bootstrap DhtAddresses) (*ChordTable, error) {
 		// For now... initiate with random integer as node id
 		// In the future this will be deterministic
 		table := ChordTable{
-			Id:    fmt.Sprintf("%d", rand.Int()),
+			Id:    GetNodeID("en0", port),
 			Port:  port,
 			seeds: seeds,
 		}
