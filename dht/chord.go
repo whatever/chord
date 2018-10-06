@@ -17,11 +17,8 @@ type ChordNode struct {
 }
 
 // Return a string representation of a node
-func (self *ChordNode) String() string {
-	if self == nil {
-		return "???:???"
-	}
-	return "---.---"
+func (self ChordNode) String() string {
+	return fmt.Sprintf("(%s, %s, %d)", self.Id, self.Ip, self.Port)
 }
 
 // An actual table that one can use to get data
@@ -30,9 +27,13 @@ type ChordTable struct {
 	seeds  DhtAddresses
 	Id     string
 	Port   int
-	Alive  bool
-	Next   ChordNode
-	Prev   ChordNode
+
+	// /shrug
+	Alive bool
+
+	// No finger table yet
+	Prev *ChordNode
+	Next *ChordNode
 }
 
 // Plural of ChordTable
@@ -60,6 +61,10 @@ func (self *ChordTable) handle(conn net.Conn) {
 
 	switch msg {
 	case "who":
+		n, err = conn.Write(([]byte)(self.Info()))
+	case "join":
+		// TODO: Define wire protocol
+		self.handleJoin()
 		n, err = conn.Write(([]byte)(self.Info()))
 	case "ping":
 		n, err = conn.Write(([]byte)(self.Info()))
@@ -140,16 +145,26 @@ func sendMessage(addr DhtAddress, message string) (string, error) {
 }
 
 // hello pings a server
-func hello(addr DhtAddress) {
+func hello(addr DhtAddress) ChordNode {
 	resp, err := sendMessage(addr, "who")
 	log.Println("Got response: ", resp, err)
+	return ChordNode{
+		Id:   "",
+		Ip:   addr.Ip,
+		Port: addr.Port,
+	}
+}
+
+// ....
+func (self *ChordTable) Attach(node ChordNode) {
 }
 
 // Join a chord table
 // - It returns a string of node ids
 func (self *ChordTable) Join() ([]string, bool) {
-	for _, addr := range self.seeds {
-		hello(addr)
+	if len(self.seeds) > 0 {
+		addr := self.seeds[0]
+		log.Println("HELLO:", hello(addr))
 	}
 	return []string{"red"}, true
 }
