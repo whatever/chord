@@ -51,6 +51,9 @@ func (self *ChordTable) handle(conn net.Conn) {
 
 	// Note that we need to truncate the byte array
 	msg := strings.TrimRight(string(buf[0:length]), "\n\r")
+	parts := strings.Split(msg, " ")
+
+	_ = parts
 
 	var n int
 	var err error
