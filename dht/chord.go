@@ -44,6 +44,11 @@ func (self *ChordTable) Info() string {
 	return self.Id
 }
 
+// Handles joining
+func (self *ChordTable) handleJoin(joining *ChordNode) (bool, error) {
+	return true, nil
+}
+
 // Reads and closes 1024 bytes of TCP connection
 // - It routes traffic to appropriate subhandler
 func (self *ChordTable) handle(conn net.Conn) {
@@ -64,10 +69,10 @@ func (self *ChordTable) handle(conn net.Conn) {
 		n, err = conn.Write(([]byte)(self.Info()))
 	case "join":
 		// TODO: Define wire protocol
-		self.handleJoin()
+		self.handleJoin(nil)
 		n, err = conn.Write(([]byte)(self.Info()))
 	case "ping":
-		n, err = conn.Write(([]byte)(self.Info()))
+		n, err = conn.Write(([]byte)("-"))
 	case "put":
 		n, err = conn.Write(([]byte)("-"))
 	case "get":
