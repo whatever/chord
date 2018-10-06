@@ -1,9 +1,14 @@
 package dht
 
 type ChordWireMessage struct {
-	Source ChordNode
-	Type   string // JOIN
-	Other  []string
+	Source      ChordNode
+	Destination ChordNode
+	Type        string // JOIN
+}
+
+// Equals returns whether two messages are equivalent
+func Equals(lhs, rhs ChordWireMessage) bool {
+	return lhs.Type == rhs.Type
 }
 
 // MESSAGE TYPES:
@@ -19,6 +24,5 @@ func DecodeWireMessage(encoded []byte) (decoded ChordWireMessage) {
 	return ChordWireMessage{
 		Source: ChordNode{},
 		Type:   "ping",
-		Other:  nil,
 	}
 }
