@@ -2,19 +2,7 @@ package dht
 
 import (
 	"encoding/json"
-	"log"
 )
-
-type ChordWireMessage struct {
-	// Source      ChordNode `json:"source"`
-	// Destination ChordNode `json:"destination"`
-	Type string `json:"type"`
-}
-
-// Equals returns whether two messages are equivalent
-func Equals(lhs, rhs ChordWireMessage) bool {
-	return lhs.Type == rhs.Type
-}
 
 // MESSAGE TYPES:
 // JON
@@ -31,11 +19,62 @@ func EncodeWireMessage(decoded ChordWireMessage) (encoded []byte) {
 // DecodeWireMessage takes a byte array and returns a DHT WireMessage
 func DecodeWireMessage(encoded []byte) (decoded ChordWireMessage) {
 	err := json.Unmarshal(encoded, &decoded)
-	log.Println("!!!", string(encoded), decoded, err)
+	if err != nil {
+		return decoded
+	}
 	return decoded
 }
 
-// Response
+// Wire Protocol REQUEST Formats
+// Wire Protocol REQUEST Formats
+// Wire Protocol REQUEST Formats
+// Wire Protocol REQUEST Formats
+// Wire Protocol REQUEST Formats
+
+// WireMessageRequestFormat
+type ChordWireMessage struct {
+	// Destination ChordNode `json:"destination"`
+	Type   string    `json:"type"`
+	Source ChordNode `json:"source"`
+}
+
+// Equals returns whether two messages are equivalent
+func Equals(lhs, rhs ChordWireMessage) bool {
+	return lhs.Type == rhs.Type && true
+}
+
+// Wire Protocol RESPONSE Formats
+// Wire Protocol RESPONSE Formats
+// Wire Protocol RESPONSE Formats
+// Wire Protocol RESPONSE Formats
+// Wire Protocol RESPONSE Formats
+
+// Response Interface
+type WireResponse interface {
+	Bytes() []byte
+}
+
+// InfoResponse
+type InfoResponse struct {
+	Id   string `json:"id"`
+	Prev string `json:"prev"`
+	Next string `json:"next"`
+}
+
+// Return
+func EncodeStruct(decoded interface{}) (encoded []byte) {
+	encoded, err := json.Marshal(decoded)
+	if err != nil {
+		return encoded
+	}
+	return encoded
+}
+
+// Bytes returns a byte-array representing
+func (self *InfoResponse) Bytes() []byte {
+	bytes := EncodeStruct(*self)
+	return bytes
+}
 
 // JoinedResponse
 type JoinedResponse struct {

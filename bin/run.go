@@ -5,11 +5,9 @@ import (
 	"fmt"
 	dht "github.com/internet-research-labs/chord/dht"
 	"log"
-	"math/rand"
 	"os"
 	"os/signal"
 	"strings"
-	"time"
 )
 
 // Setup interrupt handler quietly in the background
@@ -33,8 +31,6 @@ func getAddresses(adds []string) dht.DhtAddresses {
 
 // Main
 func main() {
-	rand.Seed(time.Now().UTC().UnixNano())
-
 	// Parse command-line args
 	seeds := flag.String("seeds", "", "comma-delimeted list of bootstrap locations")
 	port := flag.Int("l", -1, "port")

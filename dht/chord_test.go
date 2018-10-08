@@ -72,9 +72,10 @@ func TestHandle(t *testing.T) {
 		Alive: true,
 	}
 
-	conn := MockConn{Message: []byte("you know")}
+	_ = table
 
-	table.handle(conn)
+	// conn := MockConn{Message: []byte("you know")}
+	//// table.handle(conn)
 }
 
 func x_x() {

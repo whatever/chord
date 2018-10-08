@@ -25,6 +25,7 @@ type ChordTable struct {
 	server net.Listener
 	seeds  DhtAddresses
 	Id     string
+	Ip     string
 	Port   int
 
 	// /shrug
@@ -43,21 +44,46 @@ func (self *ChordTable) Info() string {
 	return self.Id
 }
 
-// handleJoin tries to connect
-// - It ...
-func (self *ChordTable) handleJoin(joining *ChordNode) (bool, error) {
+// handleJoin tries to find a place in the request chain for a node
+func (self *ChordTable) handleJoin(joining *ChordNode) (JoinedResponse, error) {
 	if self.Prev == nil && self.Next == nil {
-		fmt.Println("!!!!", *joining)
+		self.Prev = joining
+		self.Next = joining
+		return JoinedResponse{
+			self.Id,
+			self.Id,
+			self.Id,
+			"",
+		}, nil
+	} else {
+		fmt.Println("Let the wild rumpus start")
 	}
-	return true, nil
+	return JoinedResponse{}, nil
+}
+
+// GetInfo returns meta information about Prev -> Self -> Next nodes in the chain
+func (self *ChordTable) GetInfo() InfoResponse {
+	return InfoResponse{
+		Id:   self.Id,
+		Prev: self.Prev.Id,
+		Next: self.Next.Id,
+	}
 }
 
 // Reads and closes 1024 bytes of TCP connection
 // - It routes traffic to appropriate subhandler
 func (self *ChordTable) handle(conn net.Conn) {
+	// What else
 	buf := bytes.Trim(make([]byte, 1024), "\n\r")
 	buf_length, _ := conn.Read(buf)
 	buf = buf[0:buf_length]
+
+	/*
+		fmt.Println("<<<<")
+		fmt.Println(conn.LocalAddr())
+		fmt.Println(conn.RemoteAddr())
+		fmt.Println(">>>>")
+	*/
 
 	// Note that we need to truncate the byte array
 	msg := DecodeWireMessage(buf)
@@ -66,19 +92,18 @@ func (self *ChordTable) handle(conn net.Conn) {
 	var err error
 
 	switch msg.Type {
+	case "info":
+		r := InfoResponse{
+			Id:   self.Id,
+			Prev: self.Prev.Id,
+			Next: self.Next.Id,
+		}
+		n, err = conn.Write(r.Bytes())
 	case "who":
 		n, err = conn.Write(([]byte)(self.Info()))
 	case "join":
-		// TODO: Define wire protocol
-		// self.handleJoin(nil)
-		log.Println(">>>", msg)
-		n, err = conn.Write(([]byte)(self.Info()))
-	case "ping":
-		n, err = conn.Write(([]byte)("-"))
-	case "put":
-		n, err = conn.Write(([]byte)("-"))
-	case "get":
-		n, err = conn.Write(([]byte)("-"))
+		resp, _ := self.handleJoin(&msg.Source)
+		n, err = conn.Write(EncodeStruct(resp))
 	default:
 		n, err = conn.Write([]byte("IGNORED"))
 	}
@@ -139,11 +164,12 @@ func sendMessage(addr DhtAddress, message []byte) (string, error) {
 		return "", errors.New("Could not connect to address")
 	}
 
-	log.Println("MESSAGE:", string(message))
 	conn.Write(message)
 
 	buff := make([]byte, 1024)
 	n, err := conn.Read(buff)
+
+	fmt.Println("~~~~", string(buff))
 
 	if err != nil {
 		return "", errors.New("Could not read from address")
@@ -152,21 +178,23 @@ func sendMessage(addr DhtAddress, message []byte) (string, error) {
 	return string(buff)[0:n], nil
 }
 
-// hello pings a server
-func (self *ChordTable) hello(addr DhtAddress) ChordNode {
-	msg := EncodeWireMessage(ChordWireMessage{"hello"})
-	_, _ = sendMessage(addr, msg)
+// getNode returns
+func (self *ChordTable) getNode() ChordNode {
 	return ChordNode{
-		Id:   self.Id,
-		Ip:   addr.Ip,
-		Port: addr.Port,
+		self.Id,
+		"127.0.0.1",
+		self.Port,
 	}
 }
 
 // join sends a request to join
 func (self *ChordTable) join(addr DhtAddress) ChordNode {
-	msg := EncodeWireMessage(ChordWireMessage{"join"})
-	_, _ = sendMessage(addr, msg)
+	msg := EncodeWireMessage(ChordWireMessage{
+		"join",
+		self.getNode(),
+	})
+	resp, err := sendMessage(addr, msg)
+	log.Println(self.Id, ": JOIN RESPONSE :", string(resp), err)
 	return ChordNode{}
 }
 
@@ -212,8 +240,14 @@ func NewChordServer(port int, bootstrap DhtAddresses) (*ChordTable, error) {
 
 		// For now... initiate with random integer as node id
 		// In the future this will be deterministic
+		ip, err := ExternalIp()
+		_ = ip
+		if err != nil {
+			log.Panic("things went wrong")
+		}
 		table := ChordTable{
 			Id:    GetNodeID("en0", port),
+			Ip:    "",
 			Port:  port,
 			seeds: seeds,
 		}
