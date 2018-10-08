@@ -2,6 +2,7 @@ package dht
 
 import (
 	"encoding/json"
+	"log"
 )
 
 type ChordWireMessage struct {
@@ -29,7 +30,8 @@ func EncodeWireMessage(decoded ChordWireMessage) (encoded []byte) {
 
 // DecodeWireMessage takes a byte array and returns a DHT WireMessage
 func DecodeWireMessage(encoded []byte) (decoded ChordWireMessage) {
-	_ = json.Unmarshal(encoded, &decoded)
+	err := json.Unmarshal(encoded, &decoded)
+	log.Println("!!!", string(encoded), decoded, err)
 	return decoded
 }
 

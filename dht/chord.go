@@ -56,10 +56,10 @@ func (self *ChordTable) handleJoin(joining *ChordNode) (bool, error) {
 // - It routes traffic to appropriate subhandler
 func (self *ChordTable) handle(conn net.Conn) {
 	buf := bytes.Trim(make([]byte, 1024), "\n\r")
-	_, _ = conn.Read(buf)
+	buf_length, _ := conn.Read(buf)
+	buf = buf[0:buf_length]
 
 	// Note that we need to truncate the byte array
-	// msg := strings.TrimRight(string(buf[0:length]), "\n\r")
 	msg := DecodeWireMessage(buf)
 
 	var n int
@@ -69,9 +69,9 @@ func (self *ChordTable) handle(conn net.Conn) {
 	case "who":
 		n, err = conn.Write(([]byte)(self.Info()))
 	case "join":
-		fmt.Println("::", DecodeWireMessage(buf))
 		// TODO: Define wire protocol
 		// self.handleJoin(nil)
+		log.Println(">>>", msg)
 		n, err = conn.Write(([]byte)(self.Info()))
 	case "ping":
 		n, err = conn.Write(([]byte)("-"))
@@ -132,14 +132,15 @@ func readConn(conn net.Conn) string {
 }
 
 // Send message to DHT
-func sendMessage(addr DhtAddress, message string) (string, error) {
+func sendMessage(addr DhtAddress, message []byte) (string, error) {
 	conn, err := net.Dial("tcp", addr.String())
 
 	if err != nil {
 		return "", errors.New("Could not connect to address")
 	}
 
-	conn.Write([]byte(message))
+	log.Println("MESSAGE:", string(message))
+	conn.Write(message)
 
 	buff := make([]byte, 1024)
 	n, err := conn.Read(buff)
@@ -153,8 +154,8 @@ func sendMessage(addr DhtAddress, message string) (string, error) {
 
 // hello pings a server
 func (self *ChordTable) hello(addr DhtAddress) ChordNode {
-	resp, err := sendMessage(addr, "who")
-	log.Println("Got response: ", resp, err)
+	msg := EncodeWireMessage(ChordWireMessage{"hello"})
+	_, _ = sendMessage(addr, msg)
 	return ChordNode{
 		Id:   self.Id,
 		Ip:   addr.Ip,
@@ -164,9 +165,8 @@ func (self *ChordTable) hello(addr DhtAddress) ChordNode {
 
 // join sends a request to join
 func (self *ChordTable) join(addr DhtAddress) ChordNode {
-	result, err := sendMessage(addr, "join")
-	_ = result
-	_ = err
+	msg := EncodeWireMessage(ChordWireMessage{"join"})
+	_, _ = sendMessage(addr, msg)
 	return ChordNode{}
 }
 
@@ -175,8 +175,7 @@ func (self *ChordTable) join(addr DhtAddress) ChordNode {
 func (self *ChordTable) Join() ([]string, bool) {
 	if len(self.seeds) > 0 {
 		addr := self.seeds[0]
-		log.Println("HELLO:", self.hello(addr))
-		log.Println("JOIN:", self.join(addr))
+		self.join(addr)
 	}
 	return []string{"red"}, true
 }
