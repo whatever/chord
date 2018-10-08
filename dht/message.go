@@ -1,9 +1,13 @@
 package dht
 
+import (
+	"encoding/json"
+)
+
 type ChordWireMessage struct {
-	Source      ChordNode
-	Destination ChordNode
-	Type        string // JOIN
+	// Source      ChordNode `json:"source"`
+	// Destination ChordNode `json:"destination"`
+	Type string `json:"type"`
 }
 
 // Equals returns whether two messages are equivalent
@@ -16,13 +20,25 @@ func Equals(lhs, rhs ChordWireMessage) bool {
 
 // EncodeWireMessage takes a wire message and returns a byte array
 func EncodeWireMessage(decoded ChordWireMessage) (encoded []byte) {
-	return []byte{}
+	encoded, err := json.Marshal(decoded)
+	if err != nil {
+		return encoded
+	}
+	return encoded
 }
 
 // DecodeWireMessage takes a byte array and returns a DHT WireMessage
 func DecodeWireMessage(encoded []byte) (decoded ChordWireMessage) {
-	return ChordWireMessage{
-		Source: ChordNode{},
-		Type:   "ping",
-	}
+	_ = json.Unmarshal(encoded, &decoded)
+	return decoded
+}
+
+// Response
+
+// JoinedResponse
+type JoinedResponse struct {
+	Prev  string `json:"prev"`
+	Next  string `json:"next"`
+	Id    string `json:"id"`
+	Chain string `json:"chain"`
 }

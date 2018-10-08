@@ -1,15 +1,20 @@
 package dht
 
 import (
+	"fmt"
 	"testing"
 )
+
+func x_o() {
+	fmt.Println("x_x")
+}
 
 // Ensure that ping messages are properly structured
 func TestPingMessage(t *testing.T) {
 
 	message := ChordWireMessage{
-		ChordNode{},
-		ChordNode{},
+		// ChordNode{},
+		// ChordNode{},
 		"join",
 	}
 
@@ -19,7 +24,6 @@ func TestPingMessage(t *testing.T) {
 	if !Equals(message, decoded) {
 		t.Fail()
 	}
-
 }
 
 // Ensure that wire messages are bijective

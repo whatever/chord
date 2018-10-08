@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"strings"
 )
 
 // A representation of a node - contains and ID and an address
@@ -44,8 +43,12 @@ func (self *ChordTable) Info() string {
 	return self.Id
 }
 
-// Handles joining
+// handleJoin tries to connect
+// - It ...
 func (self *ChordTable) handleJoin(joining *ChordNode) (bool, error) {
+	if self.Prev == nil && self.Next == nil {
+		fmt.Println("!!!!", *joining)
+	}
 	return true, nil
 }
 
@@ -53,23 +56,22 @@ func (self *ChordTable) handleJoin(joining *ChordNode) (bool, error) {
 // - It routes traffic to appropriate subhandler
 func (self *ChordTable) handle(conn net.Conn) {
 	buf := bytes.Trim(make([]byte, 1024), "\n\r")
-	length, _ := conn.Read(buf)
+	_, _ = conn.Read(buf)
 
 	// Note that we need to truncate the byte array
-	msg := strings.TrimRight(string(buf[0:length]), "\n\r")
-	parts := strings.Split(msg, " ")
-
-	_ = parts
+	// msg := strings.TrimRight(string(buf[0:length]), "\n\r")
+	msg := DecodeWireMessage(buf)
 
 	var n int
 	var err error
 
-	switch msg {
+	switch msg.Type {
 	case "who":
 		n, err = conn.Write(([]byte)(self.Info()))
 	case "join":
+		fmt.Println("::", DecodeWireMessage(buf))
 		// TODO: Define wire protocol
-		self.handleJoin(nil)
+		// self.handleJoin(nil)
 		n, err = conn.Write(([]byte)(self.Info()))
 	case "ping":
 		n, err = conn.Write(([]byte)("-"))
@@ -150,18 +152,22 @@ func sendMessage(addr DhtAddress, message string) (string, error) {
 }
 
 // hello pings a server
-func hello(addr DhtAddress) ChordNode {
+func (self *ChordTable) hello(addr DhtAddress) ChordNode {
 	resp, err := sendMessage(addr, "who")
 	log.Println("Got response: ", resp, err)
 	return ChordNode{
-		Id:   "",
+		Id:   self.Id,
 		Ip:   addr.Ip,
 		Port: addr.Port,
 	}
 }
 
-// ....
-func (self *ChordTable) Attach(node ChordNode) {
+// join sends a request to join
+func (self *ChordTable) join(addr DhtAddress) ChordNode {
+	result, err := sendMessage(addr, "join")
+	_ = result
+	_ = err
+	return ChordNode{}
 }
 
 // Join a chord table
@@ -169,7 +175,8 @@ func (self *ChordTable) Attach(node ChordNode) {
 func (self *ChordTable) Join() ([]string, bool) {
 	if len(self.seeds) > 0 {
 		addr := self.seeds[0]
-		log.Println("HELLO:", hello(addr))
+		log.Println("HELLO:", self.hello(addr))
+		log.Println("JOIN:", self.join(addr))
 	}
 	return []string{"red"}, true
 }
