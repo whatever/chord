@@ -15,6 +15,10 @@ type ChordNode struct {
 	Port int
 }
 
+func (self *ChordNode) GetAddress() DhtAddress {
+	return DhtAddress{self.Ip, self.Port}
+}
+
 // Return a string representation of a node
 func (self ChordNode) String() string {
 	return fmt.Sprintf("(%s, %s, %d)", self.Id, self.Ip, self.Port)
@@ -39,6 +43,15 @@ type ChordTable struct {
 // Plural of ChordTable
 type ChordTables []ChordTable
 
+// GetNode
+func (self *ChordTable) GetNode() ChordNode {
+	return ChordNode{
+		Id:   self.Id,
+		Ip:   self.Ip,
+		Port: self.Port,
+	}
+}
+
 // Return info about myself
 func (self *ChordTable) Info() string {
 	return self.Id
@@ -49,14 +62,10 @@ func (self *ChordTable) handleJoin(joining *ChordNode) (JoinedResponse, error) {
 	if self.Prev == nil && self.Next == nil {
 		self.Prev = joining
 		self.Next = joining
-		node := ChordNode{
-			Id:   self.Id,
-			Ip:   self.Ip,
-			Port: self.Port,
-		}
+		node := self.GetNode()
 		return JoinedResponse{
-			Id:   node.Id,
 			Prev: node,
+			Self: node,
 			Next: node,
 		}, nil
 	} else {
@@ -74,6 +83,35 @@ func (self *ChordTable) GetInfo() InfoResponse {
 	}
 }
 
+func (self *ChordTable) handleTopology(req TopologyRequest) {
+
+	req.Type = "topology"
+
+	if req.Source == "" {
+		req.Source = self.Id
+	} else if req.Source == self.Id {
+		log.Println("PLING!")
+	} else if !Contains(self.Id, req.Path) {
+		req.Path = append(req.Path, self.Id)
+	} else {
+		req.Path = append(req.Path, self.Id)
+	}
+
+	// XXX: Figure out why we're not getting the kind of result that we expect here
+
+	b := EncodeStruct(req)
+	log.Println(string(b))
+
+	resp, err := sendMessage(
+		DhtAddress{self.Next.Ip, self.Next.Port},
+		b,
+	)
+
+	_ = resp
+	_ = err
+	// fmt.Println(resp, err)
+}
+
 // Reads and closes 1024 bytes of TCP connection
 // - It routes traffic to appropriate subhandler
 func (self *ChordTable) handle(conn net.Conn) {
@@ -82,20 +120,19 @@ func (self *ChordTable) handle(conn net.Conn) {
 	buf_length, _ := conn.Read(buf)
 	buf = buf[0:buf_length]
 
-	/*
-		fmt.Println("<<<<")
-		fmt.Println(conn.LocalAddr())
-		fmt.Println(conn.RemoteAddr())
-		fmt.Println(">>>>")
-	*/
-
-	// Note that we need to truncate the byte array
-	msg := DecodeWireMessage(buf)
-
 	var n int
 	var err error
 
+	// Note that we need to truncate the byte array
+	// log.Println("+++", string(buf))
+	msg := DecodeWireMessage(buf)
+	// log.Println("---", string(buf))
+
+	log.Println("Received message:", msg.Type)
+
 	switch msg.Type {
+	case "who":
+		n, err = conn.Write([]byte(self.Info()))
 	case "info":
 		r := InfoResponse{
 			Id:   self.Id,
@@ -103,8 +140,11 @@ func (self *ChordTable) handle(conn net.Conn) {
 			Next: self.Next.Id,
 		}
 		n, err = conn.Write(r.Bytes())
-	case "who":
-		n, err = conn.Write(([]byte)(self.Info()))
+	case "topology":
+		req := TopologyRequest{}
+		DecodeStruct(buf, &req)
+		self.handleTopology(req)
+		n, err = conn.Write([]byte(self.Id))
 	case "join":
 		resp, _ := self.handleJoin(&msg.Source)
 		n, err = conn.Write(EncodeStruct(resp))
@@ -112,8 +152,10 @@ func (self *ChordTable) handle(conn net.Conn) {
 		n, err = conn.Write([]byte("IGNORED"))
 	}
 
+	_ = n
+	_ = err
+
 	// {}}{
-	log.Println(self.Id, ":Received message:", msg, n, err)
 
 	// -_-
 	conn.Close()
@@ -172,8 +214,6 @@ func sendMessage(addr DhtAddress, message []byte) (string, error) {
 
 	buff := make([]byte, 1024)
 	n, err := conn.Read(buff)
-
-	fmt.Println("~~~~", string(buff))
 
 	if err != nil {
 		return "", errors.New("Could not read from address")

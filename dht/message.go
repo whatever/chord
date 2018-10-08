@@ -2,10 +2,14 @@ package dht
 
 import (
 	"encoding/json"
+	"log"
 )
 
-// MESSAGE TYPES:
-// JON
+// Generic Requests
+// Generic Requests
+// Generic Requests
+// Generic Requests
+// Generic Requests
 
 // EncodeWireMessage takes a wire message and returns a byte array
 func EncodeWireMessage(decoded ChordWireMessage) (encoded []byte) {
@@ -49,6 +53,12 @@ func Equals(lhs, rhs ChordWireMessage) bool {
 // Wire Protocol RESPONSE Formats
 // Wire Protocol RESPONSE Formats
 
+type TopologyRequest struct {
+	Type   string   `json:"type"`
+	Source string   `json:"source"`
+	Path   []string `json:"path"`
+}
+
 // Response Interface
 type WireResponse interface {
 	Bytes() []byte
@@ -65,6 +75,7 @@ type InfoResponse struct {
 func EncodeStruct(decoded interface{}) (encoded []byte) {
 	encoded, err := json.Marshal(decoded)
 	if err != nil {
+		log.Println("!!!!")
 		return encoded
 	}
 	return encoded
@@ -73,7 +84,9 @@ func EncodeStruct(decoded interface{}) (encoded []byte) {
 // DecodeWireMessage takes a byte array and returns a DHT WireMessage
 func DecodeStruct(encoded []byte, decoded interface{}) {
 	err := json.Unmarshal(encoded, decoded)
-	_ = err
+	if err != nil {
+		log.Println("ERROR", err)
+	}
 }
 
 // Bytes returns a byte-array representing
@@ -85,6 +98,6 @@ func (self *InfoResponse) Bytes() []byte {
 // JoinedResponse
 type JoinedResponse struct {
 	Prev ChordNode `json:"prev"`
+	Self ChordNode `json:"self"`
 	Next ChordNode `json:"next"`
-	Id   string    `json:"id"`
 }
