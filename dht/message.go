@@ -70,6 +70,12 @@ func EncodeStruct(decoded interface{}) (encoded []byte) {
 	return encoded
 }
 
+// DecodeWireMessage takes a byte array and returns a DHT WireMessage
+func DecodeStruct(encoded []byte, decoded interface{}) {
+	err := json.Unmarshal(encoded, decoded)
+	_ = err
+}
+
 // Bytes returns a byte-array representing
 func (self *InfoResponse) Bytes() []byte {
 	bytes := EncodeStruct(*self)
@@ -78,8 +84,7 @@ func (self *InfoResponse) Bytes() []byte {
 
 // JoinedResponse
 type JoinedResponse struct {
-	Prev  string `json:"prev"`
-	Next  string `json:"next"`
-	Id    string `json:"id"`
-	Chain string `json:"chain"`
+	Prev ChordNode `json:"prev"`
+	Next ChordNode `json:"next"`
+	Id   string    `json:"id"`
 }

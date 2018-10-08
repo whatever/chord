@@ -49,11 +49,15 @@ func (self *ChordTable) handleJoin(joining *ChordNode) (JoinedResponse, error) {
 	if self.Prev == nil && self.Next == nil {
 		self.Prev = joining
 		self.Next = joining
+		node := ChordNode{
+			Id:   self.Id,
+			Ip:   self.Ip,
+			Port: self.Port,
+		}
 		return JoinedResponse{
-			self.Id,
-			self.Id,
-			self.Id,
-			"",
+			Id:   node.Id,
+			Prev: node,
+			Next: node,
 		}, nil
 	} else {
 		fmt.Println("Let the wild rumpus start")
@@ -193,8 +197,16 @@ func (self *ChordTable) join(addr DhtAddress) ChordNode {
 		"join",
 		self.getNode(),
 	})
-	resp, err := sendMessage(addr, msg)
-	log.Println(self.Id, ": JOIN RESPONSE :", string(resp), err)
+	resp, _ := sendMessage(addr, msg)
+
+	r := JoinedResponse{}
+
+	DecodeStruct([]byte(resp), &r)
+
+	self.Prev = &r.Prev
+	self.Next = &r.Prev
+
+	// log.Println(self.Id, ": JOIN RESPONSE :", string(resp), err)
 	return ChordNode{}
 }
 
@@ -241,13 +253,13 @@ func NewChordServer(port int, bootstrap DhtAddresses) (*ChordTable, error) {
 		// For now... initiate with random integer as node id
 		// In the future this will be deterministic
 		ip, err := ExternalIp()
-		_ = ip
+
 		if err != nil {
 			log.Panic("things went wrong")
 		}
 		table := ChordTable{
 			Id:    GetNodeID("en0", port),
-			Ip:    "",
+			Ip:    ip[0],
 			Port:  port,
 			seeds: seeds,
 		}
