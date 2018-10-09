@@ -83,18 +83,32 @@ func (self *ChordTable) GetInfo() InfoResponse {
 	}
 }
 
+// handleTopology closes the connection and passes on the request until it comes back to itself
 func (self *ChordTable) handleTopology(req TopologyRequest) {
 
 	req.Type = "topology"
 
+	if req.Path == nil {
+		req.Path = []string{}
+	}
+
+	// This is a complicated scenario over here
+	// Basically:
+	// - Empty requests pretend that this is the start, and pass the request on
+	// - If they match, we've down a full circuit and should end early
+	// - If the are not contained in the {{path}}, then we should append and continue
+	// - If they are caontained in the {{path}}, then we should end, because we met a weird loop
 	if req.Source == "" {
 		req.Source = self.Id
+		req.Path = []string{req.Source}
 	} else if req.Source == self.Id {
-		log.Println("PLING!")
+		req.Path = append(req.Path, self.Id)
+		return
 	} else if !Contains(self.Id, req.Path) {
 		req.Path = append(req.Path, self.Id)
 	} else {
-		req.Path = append(req.Path, self.Id)
+		log.Println("[[[WEIRD]]]")
+		return
 	}
 
 	// XXX: Figure out why we're not getting the kind of result that we expect here
