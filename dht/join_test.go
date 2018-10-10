@@ -7,7 +7,7 @@ import (
 
 // XXX: Try writing some tests here, so we can have explicit assertions on how we're organized
 // Test that things start correctly
-func TestStart(t *testing.T) {
+func TestMultipleJoins(t *testing.T) {
 	seed, _ := newChordServer("001", 9000, nil)
 	seed.Listen()
 	defer seed.Close()
@@ -26,6 +26,16 @@ func TestStart(t *testing.T) {
 	}
 
 	if alice.Next.Id != seed.Id {
+		t.Fail()
+	}
+
+	bob, _ := newChordServer("003", 9002, bootstrap)
+	bob.Listen()
+	defer bob.Close()
+	bob.Join()
+
+	// XXX: If this works, then we have some basic joining
+	if alice.Next.Id != bob.Id {
 		t.Fail()
 	}
 }
