@@ -72,9 +72,25 @@ func (self *ChordTable) handleJoin(joining *ChordNode) (JoinedResponse, error) {
 			Self: node,
 			Next: node,
 		}, nil
-	} else {
-		fmt.Println("Let the wild rumpus start")
 	}
+
+	if self.Id == joining.Id {
+		log.Println("WEIRD... I don't even know myself")
+		return JoinedResponse{}, nil
+	}
+
+	// XXX: Need to figure out how to differentiate between
+	// - "I want to join the network" and
+	// - "Hey find a place for this node, then organize the update"
+
+	// We found the right node to update the successor
+	if self.Id < joining.Id && joining.Id < self.Next.Id {
+		log.Println(self.Id, "<", joining.Id, "<", self.Next.Id)
+		return JoinedResponse{}, nil
+	}
+
+	log.Println("so sure me")
+
 	return JoinedResponse{}, nil
 }
 
@@ -322,6 +338,7 @@ func NewChordServer(port int, bootstrap DhtAddresses) (*ChordTable, error) {
 		if err != nil {
 			log.Panic("things went wrong")
 		}
+
 		table := ChordTable{
 			Id:         GetNodeID("en0", port),
 			Ip:         ip[0],
