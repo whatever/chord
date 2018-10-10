@@ -322,8 +322,7 @@ func (self *ChordTable) Put(key string) (string, bool) {
 }
 
 // Create Node in a Chord Table
-func NewChordServer(port int, bootstrap DhtAddresses) (*ChordTable, error) {
-
+func newChordServer(id string, port int, bootstrap DhtAddresses) (*ChordTable, error) {
 	// ...
 	if port > 0 {
 		seeds := make(DhtAddresses, 0)
@@ -344,7 +343,7 @@ func NewChordServer(port int, bootstrap DhtAddresses) (*ChordTable, error) {
 		}
 
 		table := ChordTable{
-			Id:         GetNodeID("en0", port),
+			Id:         id,
 			Ip:         ip[0],
 			Port:       port,
 			seeds:      seeds,
@@ -357,6 +356,11 @@ func NewChordServer(port int, bootstrap DhtAddresses) (*ChordTable, error) {
 
 	// Return with everythhing bad
 	return nil, errors.New("Invalid port")
+}
+
+func NewChordServer(port int, bootstrap DhtAddresses) (*ChordTable, error) {
+	id := GetNodeID("en0", port)
+	return newChordServer(id, port, bootstrap)
 }
 
 // GetSignature returns a message signature that needs to be caught
