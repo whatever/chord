@@ -74,6 +74,10 @@ func (self *ChordTable) handleJoin(joining *ChordNode) (JoinedResponse, error) {
 		}, nil
 	}
 
+	if self.Next == nil {
+		log.Println("THIS IS A MISTAKE")
+	}
+
 	if self.Id == joining.Id {
 		log.Println("WEIRD... I don't even know myself")
 		return JoinedResponse{}, nil
