@@ -10,7 +10,8 @@ import (
 
 // A representation of a node - contains and ID and an address
 type ChordNode struct {
-	Id   string
+	// XXX: port over to integer to make circle topology easier to think about
+	Id   uint
 	Ip   string
 	Port int
 }
@@ -246,6 +247,8 @@ func (self *ChordTable) handleJoin(joining ChordWireMessage) (JoinedResponse, er
 		self.Next = &joining.Source
 		SendJoin(joining.Source.GetAddress(), self.GetNode())
 	}
+
+	// XXX: Start figuring out ring structure
 	return JoinedResponse{}, nil
 }
 
