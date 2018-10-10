@@ -16,4 +16,4 @@ PID=$$
 echo Starting seed server on $PID
 
 sleep 1
-seq 8082 8082 | xargs -I{} -P200 go run run.go -seeds=":8081" -l {}
+seq 8082 8083 | xargs -I{} -P200 go run run.go -seeds=":8081" -l {}

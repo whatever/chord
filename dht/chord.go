@@ -38,6 +38,10 @@ type ChordTable struct {
 	// No finger table yet
 	Prev *ChordNode
 	Next *ChordNode
+
+	// This tells me who I belong to
+	belonger   chan JoinedResponse
+	randomizer Randomizer
 }
 
 // Plural of ChordTable
@@ -189,6 +193,13 @@ func (self *ChordTable) Listen() {
 	self.server = server
 	self.Alive = true
 
+	// Listen to requests
+	go func() {
+		for joinRequest := range self.belonger {
+			fmt.Println(joinRequest)
+		}
+	}()
+
 	// Turn on TCP listen-loop in the background
 	go func() {
 		// Continually accept
@@ -312,10 +323,11 @@ func NewChordServer(port int, bootstrap DhtAddresses) (*ChordTable, error) {
 			log.Panic("things went wrong")
 		}
 		table := ChordTable{
-			Id:    GetNodeID("en0", port),
-			Ip:    ip[0],
-			Port:  port,
-			seeds: seeds,
+			Id:         GetNodeID("en0", port),
+			Ip:         ip[0],
+			Port:       port,
+			seeds:      seeds,
+			randomizer: NewRandomizer("see you in hell"),
 		}
 
 		// Return with everyything good
@@ -324,4 +336,15 @@ func NewChordServer(port int, bootstrap DhtAddresses) (*ChordTable, error) {
 
 	// Return with everythhing bad
 	return nil, errors.New("Invalid port")
+}
+
+// GetSignature returns a message signature that needs to be caught
+func (self *ChordTable) GetSignature() Signature {
+	node := self.GetNode()
+	nonce := self.randomizer.GetToken()
+	return Signature{
+		public:  nonce,
+		private: nonce,
+		Node:    node,
+	}
 }
