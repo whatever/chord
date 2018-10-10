@@ -61,43 +61,6 @@ func (self *ChordTable) Info() string {
 	return self.Id
 }
 
-// handleJoin tries to find a place in the request chain for a node
-func (self *ChordTable) handleJoin(joining *ChordNode) (JoinedResponse, error) {
-	if self.Prev == nil && self.Next == nil {
-		self.Prev = joining
-		self.Next = joining
-		node := self.GetNode()
-		return JoinedResponse{
-			Prev: node,
-			Self: node,
-			Next: node,
-		}, nil
-	}
-
-	if self.Next == nil {
-		log.Println("THIS IS A MISTAKE")
-	}
-
-	if self.Id == joining.Id {
-		log.Println("WEIRD... I don't even know myself")
-		return JoinedResponse{}, nil
-	}
-
-	// XXX: Need to figure out how to differentiate between
-	// - "I want to join the network" and
-	// - "Hey find a place for this node, then organize the update"
-
-	// We found the right node to update the successor
-	if self.Id < joining.Id && joining.Id < self.Next.Id {
-		log.Println(self.Id, "<", joining.Id, "<", self.Next.Id)
-		return JoinedResponse{}, nil
-	}
-
-	log.Println("so sure me")
-
-	return JoinedResponse{}, nil
-}
-
 // GetInfo returns meta information about Prev -> Self -> Next nodes in the chain
 func (self *ChordTable) GetInfo() InfoResponse {
 	return InfoResponse{
@@ -184,7 +147,7 @@ func (self *ChordTable) handle(conn net.Conn) {
 		self.handleTopology(req)
 		n, err = conn.Write([]byte(self.Id))
 	case "join":
-		resp, _ := self.handleJoin(&msg.Source)
+		resp, _ := self.handleJoin(msg)
 		n, err = conn.Write(EncodeStruct(resp))
 	default:
 		n, err = conn.Write([]byte("IGNORED"))
@@ -276,33 +239,41 @@ func (self *ChordTable) getNode() ChordNode {
 	}
 }
 
-// join sends a request to join
-func (self *ChordTable) join(addr DhtAddress) ChordNode {
+// handleJoin tries to find a place in the request chain for a node
+func (self *ChordTable) handleJoin(joining ChordWireMessage) (JoinedResponse, error) {
+	if self.Prev == nil && self.Next == nil {
+		self.Prev = &joining.Source
+		self.Next = &joining.Source
+		SendJoin(joining.Source.GetAddress(), self.GetNode())
+	}
+	return JoinedResponse{}, nil
+}
+
+// SendJoin sends a request for a node to join the network (even if it is not this exact node)
+// - This allows nodes to forward a message, and not care about the response
+func SendJoin(addr DhtAddress, node ChordNode) (token string) {
+
 	msg := EncodeWireMessage(ChordWireMessage{
 		"join",
-		self.getNode(),
+		node,
 	})
+
 	resp, _ := sendMessage(addr, msg)
 
 	r := JoinedResponse{}
 
 	DecodeStruct([]byte(resp), &r)
 
-	self.Prev = &r.Prev
-	self.Next = &r.Prev
-
-	// log.Println(self.Id, ": JOIN RESPONSE :", string(resp), err)
-	return ChordNode{}
+	return "whatever"
 }
 
 // Join a chord table
 // - It returns a string of node ids
-func (self *ChordTable) Join() ([]string, bool) {
+func (self *ChordTable) RequestJoin() {
 	if len(self.seeds) > 0 {
 		addr := self.seeds[0]
-		self.join(addr)
+		SendJoin(addr, self.getNode())
 	}
-	return []string{"red"}, true
 }
 
 // Close closes the TCP server
