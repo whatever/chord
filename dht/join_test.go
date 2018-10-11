@@ -8,7 +8,7 @@ import (
 // XXX: Try writing some tests here, so we can have explicit assertions on how we're organized
 // Test that things start correctly
 func TestMultipleJoins(t *testing.T) {
-	seed, _ := newChordServer(uint(1), 9000, nil)
+	seed, _ := newChordServer(1, 9000, nil)
 	seed.Listen()
 	defer seed.Close()
 
@@ -16,7 +16,7 @@ func TestMultipleJoins(t *testing.T) {
 	bootstrap := []DhtAddress{}
 	bootstrap = append(bootstrap, node.GetAddress())
 
-	alice, _ := newChordServer(uint(2), 9001, bootstrap)
+	alice, _ := newChordServer(2, 9001, bootstrap)
 	alice.Listen()
 	defer alice.Close()
 	alice.RequestJoin()
@@ -33,7 +33,7 @@ func TestMultipleJoins(t *testing.T) {
 		t.Error("alice does point forward to seed")
 	}
 
-	bob, _ := newChordServer(3, 9002, bootstrap)
+	bob, _ := newChordServer(9, 9002, bootstrap)
 	bob.Listen()
 	defer bob.Close()
 	bob.RequestJoin()
@@ -45,6 +45,16 @@ func TestMultipleJoins(t *testing.T) {
 
 	if alice.Next == nil || alice.Next.Id != bob.Id {
 		t.Error("alice does not point to bob:", alice, "!=", bob)
+	}
+
+	carlos, _ := newChordServer(4, 9003, bootstrap)
+	carlos.Listen()
+	defer carlos.Close()
+	carlos.RequestJoin()
+
+	// alice -> carlos -
+	if alice.Next.Id != carlos.Id && carlos.Prev.Id != alice.Id && carlos.Next.Id != bob.Id {
+		t.Error("Carlos did not properly enter the pool")
 	}
 }
 

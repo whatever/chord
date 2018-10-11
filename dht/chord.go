@@ -43,6 +43,7 @@ type ChordTable struct {
 	// This tells me who I belong to
 	belonger   chan JoinedResponse
 	randomizer Randomizer
+	waiting    map[string]ChordWireMessage
 }
 
 // Plural of ChordTable
@@ -245,26 +246,82 @@ func (self *ChordTable) Println(line string, vars ...interface{}) {
 	log.Printf(id + " " + line)
 }
 
+// Returns whether this node needs to be bootstrapped (has no one in the world)
+func (self *ChordTable) NeedsBootstrap() bool {
+	return self.Prev == nil && self.Next == nil
+}
+
+// Returns whether this node discovered its predecessor
+func (self *ChordTable) IsPredecessor(cand ChordNode) bool {
+	switch {
+
+	// If we're boostrapping
+	case self.Prev == nil:
+		return true
+
+	// If it's the actual predecessor
+	case self.Id > cand.Id && cand.Id > self.Prev.Id:
+		return true
+
+	// If we're the first node
+	case self.Id < self.Prev.Id:
+		return self.Id > cand.Id
+
+	default:
+		return false
+	}
+}
+
+// Returns whether this node discovered a its successor
+func (self *ChordTable) IsSuccessor(cand ChordNode) bool {
+	switch {
+
+	// If we're bootstrapping a successor
+	case self.Next == nil:
+		return true
+
+	// If this node actually fits
+	case self.Id < cand.Id && cand.Id < self.Next.Id:
+		return true
+
+	// If we're the last node
+	case self.Id > self.Next.Id:
+		return self.Id < cand.Id
+
+	default:
+		return false
+	}
+}
+
 // handleJoin tries to find a place in the request chain for a node
 func (self *ChordTable) handleJoin(joining ChordWireMessage) (JoinedResponse, error) {
 
+	// You know... we gotta stop sometime
 	if joining.Hops < 0 {
 		self.Println("HOP LIMIT EXCEEDED")
 		return JoinedResponse{}, nil
 	}
 
 	switch {
-	case self.Prev == nil && self.Next == nil:
+	case self.NeedsBootstrap():
 		self.Prev = &joining.Source
 		self.Next = &joining.Source
-
 		self.Println("%d <-> %d", self.Id, self.Next.Id)
-
-		// Notify the joiner that they're good
 		SendJoin(joining.Source.GetAddress(), self.GetNode(), joining.Hops-1)
+		return JoinedResponse{}, nil
 
-	case self.Id < joining.Source.Id && joining.Source.Id < self.Next.Id:
-		self.Println("found a new node to connect to")
+	case self.Next.Id == joining.Source.Id:
+		return JoinedResponse{}, nil
+
+	case self.IsSuccessor(joining.Source):
+		self.Next = &joining.Source
+		self.Println("%d |-> %d", self.Id, self.Next.Id)
+		SendJoin(joining.Source.GetAddress(), self.GetNode(), joining.Hops-1)
+		SendJoin(self.Next.GetAddress(), self.GetNode(), joining.Hops-1)
+
+	case self.IsPredecessor(joining.Source):
+		self.Prev = &joining.Source
+		self.Println("%d |<- %d", self.Id, self.Next.Id)
 
 	default:
 		self.Println("%d ?~ %d", self.Id, joining.Source.Id)
@@ -299,6 +356,8 @@ func SendJoin(addr DhtAddress, node ChordNode, hops int) (token string) {
 func (self *ChordTable) RequestJoin() {
 	if len(self.seeds) > 0 {
 		addr := self.seeds[0]
+		nonce := self.randomizer.GetToken()
+		_ = nonce
 		SendJoin(addr, self.getNode(), 5)
 	}
 }
