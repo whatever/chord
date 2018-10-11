@@ -60,7 +60,8 @@ func main() {
 	if err == nil {
 		log.Printf("Listening on %d\n", *port)
 		server.Listen()
-		server.Join()
+		server.RequestJoin()
+		// XXX: Get this script up-and-running
 		defer server.Close()
 	} else {
 		done <- true
