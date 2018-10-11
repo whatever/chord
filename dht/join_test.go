@@ -21,25 +21,31 @@ func TestMultipleJoins(t *testing.T) {
 	defer alice.Close()
 	alice.RequestJoin()
 
-	if seed.Next.Id != alice.Id {
-		t.Fail()
+	if seed.Next == nil || seed.Next.Id != alice.Id {
+		t.Error("seed does not point to alice")
 	}
 
-	/*
-		if alice.Next.Id != seed.Id {
-			t.Fail()
-		}
+	if alice.Prev == nil || alice.Prev.Id != seed.Id {
+		t.Error("alice does not point back to seed", alice, seed)
+	}
 
-			bob, _ := newChordServer("003", 9002, bootstrap)
-			bob.Listen()
-			defer bob.Close()
-			bob.RequestJoin()
+	if alice.Next == nil || alice.Next.Id != seed.Id {
+		t.Error("alice does point forward to seed")
+	}
 
-			// XXX: If this works, then we have some basic joining
-			if alice.Next.Id != bob.Id {
-				t.Fail()
-			}
-	*/
+	bob, _ := newChordServer(3, 9002, bootstrap)
+	bob.Listen()
+	defer bob.Close()
+	bob.RequestJoin()
+
+	// XXX: If this works, then we have some basic joining
+	if bob.Next == nil {
+		t.Error("bob did not properly join the circle:", bob.Next)
+	}
+
+	if alice.Next == nil || alice.Next.Id != bob.Id {
+		t.Error("alice does not point to bob:", alice, "!=", bob)
+	}
 }
 
 func xxx() {

@@ -130,8 +130,6 @@ func (self *ChordTable) handle(conn net.Conn) {
 	msg := DecodeWireMessage(buf)
 	// log.Println("---", string(buf))
 
-	log.Println("Received message:", msg.Type)
-
 	switch msg.Type {
 	case "who":
 		n, err = conn.Write([]byte(string(self.Info())))
@@ -240,26 +238,52 @@ func (self *ChordTable) getNode() ChordNode {
 	}
 }
 
+// Printlnf prints a log line
+func (self *ChordTable) Println(line string, vars ...interface{}) {
+	id := fmt.Sprintf("[%02d]", self.Id)
+	line = fmt.Sprintf(line, vars...)
+	log.Printf(id + " " + line)
+}
+
 // handleJoin tries to find a place in the request chain for a node
 func (self *ChordTable) handleJoin(joining ChordWireMessage) (JoinedResponse, error) {
-	if self.Prev == nil && self.Next == nil {
+
+	if joining.Hops < 0 {
+		self.Println("HOP LIMIT EXCEEDED")
+		return JoinedResponse{}, nil
+	}
+
+	switch {
+	case self.Prev == nil && self.Next == nil:
 		self.Prev = &joining.Source
 		self.Next = &joining.Source
-		SendJoin(joining.Source.GetAddress(), self.GetNode())
+
+		self.Println("%d <-> %d", self.Id, self.Next.Id)
+
+		// Notify the joiner that they're good
+		SendJoin(joining.Source.GetAddress(), self.GetNode(), joining.Hops-1)
+
+	case self.Id < joining.Source.Id && joining.Source.Id < self.Next.Id:
+		self.Println("found a new node to connect to")
+
+	default:
+		self.Println("%d ?~ %d", self.Id, joining.Source.Id)
+		SendJoin(self.Next.GetAddress(), joining.Source, joining.Hops-1)
 	}
 
 	// XXX: Start figuring out ring structure
 	return JoinedResponse{}, nil
 }
 
+// SendUpdate gives some details
+func SendUpdate(addr DhtAddress, node ChordNode, hops int) (token string) {
+	return "x_x"
+}
+
 // SendJoin sends a request for a node to join the network (even if it is not this exact node)
 // - This allows nodes to forward a message, and not care about the response
-func SendJoin(addr DhtAddress, node ChordNode) (token string) {
-
-	msg := EncodeWireMessage(ChordWireMessage{
-		"join",
-		node,
-	})
+func SendJoin(addr DhtAddress, node ChordNode, hops int) (token string) {
+	msg := EncodeWireMessage(ChordWireMessage{"join", node, hops})
 
 	resp, _ := sendMessage(addr, msg)
 
@@ -275,7 +299,7 @@ func SendJoin(addr DhtAddress, node ChordNode) (token string) {
 func (self *ChordTable) RequestJoin() {
 	if len(self.seeds) > 0 {
 		addr := self.seeds[0]
-		SendJoin(addr, self.getNode())
+		SendJoin(addr, self.getNode(), 5)
 	}
 }
 

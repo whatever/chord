@@ -40,6 +40,7 @@ type ChordWireMessage struct {
 	// Destination ChordNode `json:"destination"`
 	Type   string    `json:"type"`
 	Source ChordNode `json:"source"`
+	Hops   int       `json:"hops"`
 }
 
 // Equals returns whether two messages are equivalent

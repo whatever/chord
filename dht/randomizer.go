@@ -15,7 +15,6 @@ type Randomizer struct {
 // NewRandomizer returns an object to generate new tokens
 func NewRandomizer(salt string) Randomizer {
 	seed := time.Now().UTC().UnixNano()
-	fmt.Println("seed:", seed)
 	source := rand.NewSource(seed)
 	return Randomizer{
 		salt: salt,
