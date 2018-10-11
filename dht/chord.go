@@ -333,7 +333,7 @@ func (self *ChordTable) handleJoin(joining ChordWireMessage) (JoinedResponse, er
 }
 
 // SendUpdate gives some details
-func SendUpdate(addr DhtAddress, node ChordNode, hops int) (token string) {
+func RequestTopology(addr DhtAddress) string {
 	return "x_x"
 }
 
@@ -358,7 +358,7 @@ func (self *ChordTable) RequestJoin() {
 		addr := self.seeds[0]
 		nonce := self.randomizer.GetToken()
 		_ = nonce
-		SendJoin(addr, self.getNode(), 5)
+		SendJoin(addr, self.getNode(), 50)
 	}
 }
 

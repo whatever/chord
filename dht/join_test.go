@@ -58,6 +58,50 @@ func TestMultipleJoins(t *testing.T) {
 	}
 }
 
+// Test that more complicated starts work
+func TestRequestToplogy(t *testing.T) {
+
+	// Get seed
+	seed, _ := newChordServer(420, 8000, nil)
+	seed.Listen()
+	defer seed.Close()
+
+	node := seed.GetNode()
+	bootstrap := []DhtAddress{}
+	bootstrap = append(bootstrap, node.GetAddress())
+
+	// Make network
+	network := make([]*ChordTable, 10)
+	for i, _ := range network {
+		network[i], _ = newChordServer(96+1000*uint(i), 9000+i, bootstrap)
+	}
+
+	// Put everyone on the network
+	for _, v := range network {
+		v.Listen()
+		defer v.Close()
+	}
+
+	// Request some joins
+	for _, v := range network {
+		v.RequestJoin()
+	}
+
+	if network[2].Next.Id != network[3].Id {
+		t.Error("2 should point at 3")
+	}
+
+	resp := RequestTopology(bootstrap[0])
+
+	if resp != "what?" {
+		t.Error("Need to figure out this thing")
+	}
+
+	// x_x
+	network = append(network, seed)
+}
+
+// xxx does nothing
 func xxx() {
 	fmt.Println("x_x")
 }
