@@ -5,7 +5,8 @@ package dht
 func FigureOutTopology() {
 }
 
-func Contains(needle string, haystack []string) bool {
+// Contains returns whether a slice contains a given value
+func Contains(needle uint, haystack []uint) bool {
 	for _, maybe := range haystack {
 		if needle == maybe {
 			return true

@@ -8,7 +8,7 @@ import (
 // XXX: Try writing some tests here, so we can have explicit assertions on how we're organized
 // Test that things start correctly
 func TestMultipleJoins(t *testing.T) {
-	seed, _ := newChordServer("001", 9000, nil)
+	seed, _ := newChordServer(uint(1), 9000, nil)
 	seed.Listen()
 	defer seed.Close()
 
@@ -16,7 +16,7 @@ func TestMultipleJoins(t *testing.T) {
 	bootstrap := []DhtAddress{}
 	bootstrap = append(bootstrap, node.GetAddress())
 
-	alice, _ := newChordServer("002", 9001, bootstrap)
+	alice, _ := newChordServer(uint(2), 9001, bootstrap)
 	alice.Listen()
 	defer alice.Close()
 	alice.RequestJoin()

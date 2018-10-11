@@ -54,9 +54,9 @@ func Equals(lhs, rhs ChordWireMessage) bool {
 // Wire Protocol RESPONSE Formats
 
 type TopologyRequest struct {
-	Type   string   `json:"type"`
-	Source string   `json:"source"`
-	Path   []string `json:"path"`
+	Type   string `json:"type"`
+	Source uint   `json:"source"`
+	Path   []uint `json:"path"`
 }
 
 // Response Interface
@@ -66,9 +66,9 @@ type WireResponse interface {
 
 // InfoResponse
 type InfoResponse struct {
-	Id   string `json:"id"`
-	Prev string `json:"prev"`
-	Next string `json:"next"`
+	Id   uint `json:"id"`
+	Prev uint `json:"prev"`
+	Next uint `json:"next"`
 }
 
 // Return

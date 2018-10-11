@@ -22,14 +22,14 @@ func (self *ChordNode) GetAddress() DhtAddress {
 
 // Return a string representation of a node
 func (self ChordNode) String() string {
-	return fmt.Sprintf("(%s, %s, %d)", self.Id, self.Ip, self.Port)
+	return fmt.Sprintf("(%d, %s, %d)", self.Id, self.Ip, self.Port)
 }
 
 // An actual table that one can use to get data
 type ChordTable struct {
 	server net.Listener
 	seeds  DhtAddresses
-	Id     string
+	Id     uint
 	Ip     string
 	Port   int
 
@@ -58,7 +58,7 @@ func (self *ChordTable) GetNode() ChordNode {
 }
 
 // Return info about myself
-func (self *ChordTable) Info() string {
+func (self *ChordTable) Info() uint {
 	return self.Id
 }
 
@@ -77,7 +77,7 @@ func (self *ChordTable) handleTopology(req TopologyRequest) {
 	req.Type = "topology"
 
 	if req.Path == nil {
-		req.Path = []string{}
+		req.Path = []uint{}
 	}
 
 	// This is a complicated scenario over here
@@ -86,9 +86,9 @@ func (self *ChordTable) handleTopology(req TopologyRequest) {
 	// - If they match, we've down a full circuit and should end early
 	// - If the are not contained in the {{path}}, then we should append and continue
 	// - If they are caontained in the {{path}}, then we should end, because we met a weird loop
-	if req.Source == "" {
+	if req.Source == 0 && req.Path == nil {
 		req.Source = self.Id
-		req.Path = []string{req.Source}
+		req.Path = []uint{req.Source}
 	} else if req.Source == self.Id {
 		req.Path = append(req.Path, self.Id)
 		return
@@ -134,7 +134,7 @@ func (self *ChordTable) handle(conn net.Conn) {
 
 	switch msg.Type {
 	case "who":
-		n, err = conn.Write([]byte(self.Info()))
+		n, err = conn.Write([]byte(string(self.Info())))
 	case "info":
 		r := InfoResponse{
 			Id:   self.Id,
@@ -146,7 +146,7 @@ func (self *ChordTable) handle(conn net.Conn) {
 		req := TopologyRequest{}
 		DecodeStruct(buf, &req)
 		self.handleTopology(req)
-		n, err = conn.Write([]byte(self.Id))
+		n, err = conn.Write([]byte(string(self.Id)))
 	case "join":
 		resp, _ := self.handleJoin(msg)
 		n, err = conn.Write(EncodeStruct(resp))
@@ -198,7 +198,7 @@ func (self *ChordTable) Listen() {
 
 // String outputs a human readable representation of the ChordTable
 func (self ChordTable) String() string {
-	return fmt.Sprintf("[%s // %d]", self.Id, self.Port)
+	return fmt.Sprintf("[%d // %d]", self.Id, self.Port)
 }
 
 // readConn returns a message <= 1024 bytes from a TCP connection
@@ -296,7 +296,7 @@ func (self *ChordTable) Put(key string) (string, bool) {
 }
 
 // Create Node in a Chord Table
-func newChordServer(id string, port int, bootstrap DhtAddresses) (*ChordTable, error) {
+func newChordServer(id uint, port int, bootstrap DhtAddresses) (*ChordTable, error) {
 	// ...
 	if port > 0 {
 		seeds := make(DhtAddresses, 0)

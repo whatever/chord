@@ -14,7 +14,7 @@ func TestPingMessage(t *testing.T) {
 
 	message := ChordWireMessage{
 		"join",
-		ChordNode{"001", "127.0.0.1", 8080},
+		ChordNode{1, "127.0.0.1", 8080},
 	}
 
 	encoded := EncodeWireMessage(message)
@@ -35,4 +35,8 @@ func TestDecodeWireMessage(t *testing.T) {
 
 // Ensure that wire messages are encodable
 func TestEncodeWireMessage(t *testing.T) {
+}
+
+func TestGetNodeID(t *testing.T) {
+	fmt.Println(GetNodeID("en0", 8081))
 }

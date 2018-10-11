@@ -67,7 +67,7 @@ func (self MockAddr) String() string {
 
 func TestHandle(t *testing.T) {
 	table := ChordTable{
-		Id:    "-",
+		Id:    1,
 		Port:  -1,
 		Alive: true,
 	}

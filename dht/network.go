@@ -2,7 +2,8 @@ package dht
 
 import (
 	"crypto/sha256"
-	"encoding/base64"
+	_ "encoding/base64"
+	"encoding/binary"
 	"fmt"
 	"net"
 )
@@ -48,15 +49,17 @@ func ExternalIp() ([]string, error) {
 }
 
 // GetNodeID returns a UUID for a node on a network with that port number.
-func GetNodeID(name string, port int) string {
+func GetNodeID(name string, port int) uint {
 	hasher := sha256.New()
 	addr, err := GetAddress(name)
-	var id string
+	var id uint
 	if err == nil {
-		hasher.Write([]byte(fmt.Sprintf("%s////%d", addr, port)))
-		id = base64.URLEncoding.EncodeToString(hasher.Sum(nil))
+		hasher.Write([]byte(fmt.Sprintf("%s x_x %d", addr, port)))
+		b := hasher.Sum(nil)[0:8]
+		id := uint(binary.LittleEndian.Uint64(b))
+		return id
 	} else {
-		id = "..."
+		id = 0
 	}
 	return id
 }
