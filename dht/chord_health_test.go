@@ -1,7 +1,6 @@
 package dht
 
 import (
-	"fmt"
 	"testing"
 )
 
@@ -24,8 +23,4 @@ func TestPing(t *testing.T) {
 	if resp.Token != "zap" {
 		t.Error("Token is not equal to zap")
 	}
-}
-
-func zzz() {
-	fmt.Println("zzz")
 }
