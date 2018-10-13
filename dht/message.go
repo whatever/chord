@@ -12,7 +12,7 @@ import (
 // Generic Requests
 
 // EncodeWireMessage takes a wire message and returns a byte array
-func EncodeWireMessage(decoded ChordWireMessage) (encoded []byte) {
+func EncodeWireMessage(decoded interface{}) (encoded []byte) {
 	encoded, err := json.Marshal(decoded)
 	if err != nil {
 		return encoded

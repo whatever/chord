@@ -11,9 +11,9 @@ import (
 // A representation of a node - contains and ID and an address
 type ChordNode struct {
 	// XXX: port over to integer to make circle topology easier to think about
-	Id   uint
-	Ip   string
-	Port int
+	Id   uint   `json:"id,omitempty"`
+	Ip   string `json:"ip,omitempty"`
+	Port int    `json:"port,omitempty"`
 }
 
 func (self *ChordNode) GetAddress() DhtAddress {
@@ -39,6 +39,9 @@ type ChordTable struct {
 	// No finger table yet
 	Prev *ChordNode
 	Next *ChordNode
+
+	// list of nodes that I've met in the past
+	seen []ChordNode
 
 	// This tells me who I belong to
 	belonger   chan JoinedResponse
@@ -132,8 +135,15 @@ func (self *ChordTable) handle(conn net.Conn) {
 	// log.Println("---", string(buf))
 
 	switch msg.Type {
-	case "who":
-		n, err = conn.Write([]byte(string(self.Info())))
+
+	// Just saying "sup... are you alive?"
+	case "ping":
+		req := PingRequest{}
+		DecodeStruct(buf, &req)
+		res := self.HandlePing(req)
+		n, err = conn.Write([]byte(EncodeWireMessage(res)))
+
+	// Get some details about the node
 	case "info":
 		r := InfoResponse{
 			Id:   self.Id,
@@ -141,6 +151,8 @@ func (self *ChordTable) handle(conn net.Conn) {
 			Next: self.Next.Id,
 		}
 		n, err = conn.Write(r.Bytes())
+
+	// Kick off a topology scan
 	case "topology":
 		req := TopologyRequest{}
 		DecodeStruct(buf, &req)
