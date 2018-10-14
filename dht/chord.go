@@ -42,7 +42,8 @@ type ChordTable struct {
 
 	// list of nodes that I've met in the past
 	seen      []ChordNode
-	Responses chan bool
+	Responses chan SeekResponse
+	ChangeLog chan string
 
 	// This tells me who I belong to
 	belonger   chan JoinedResponse
@@ -119,6 +120,15 @@ func (self *ChordTable) handleTopology(req TopologyRequest) {
 	// fmt.Println(resp, err)
 }
 
+func EncodedOkayResponse() []byte {
+	okay := StatusResponse{
+		Type:    "okay",
+		Message: "what",
+		Token:   "---",
+	}
+	return []byte(EncodeWireMessage(okay))
+}
+
 // Reads and closes 1024 bytes of TCP connection
 // - It routes traffic to appropriate subhandler
 func (self *ChordTable) handle(conn net.Conn) {
@@ -145,12 +155,21 @@ func (self *ChordTable) handle(conn net.Conn) {
 		n, err = conn.Write([]byte(EncodeWireMessage(res)))
 
 	// SEEK: Finding
-	case "seek":
+	case "seek?":
+		// Respond immediately
+		n, _ = conn.Write(EncodedOkayResponse())
+
+		// Immediately reply with "Yea
 		req := SeekRequest{}
 		DecodeStruct(buf, &req)
 		res, _ := self.HandleSeek(req)
-		log.Println("???", req)
-		n, err = conn.Write([]byte(EncodeWireMessage(res)))
+		self.Println("SEEKD :: ??? :: %s", res)
+
+	case "seek!":
+		req := SeekResponse{}
+		DecodeStruct(buf, &req)
+		self.Responses <- req
+		self.ChangeLog <- "seek!"
 
 	// JOIN: Find and join in a single operation (might have incosistencies)
 	case "join":
@@ -176,7 +195,7 @@ func (self *ChordTable) handle(conn net.Conn) {
 	// DEFAULT: x_x
 	default:
 		n, err = conn.Write([]byte("IGNORED"))
-		fmt.Println("!!!<<<")
+		self.Println("Ignored", msg)
 	}
 
 	_ = n
@@ -201,6 +220,13 @@ func (self *ChordTable) Listen() {
 
 	self.server = server
 	self.Alive = true
+
+	go func() {
+		for {
+			v := <-self.Responses
+			self.Println("Received: %s", v)
+		}
+	}()
 
 	// Turn on TCP listen-loop in the background
 	go func() {
@@ -319,7 +345,7 @@ func RequestTopology(addr DhtAddress) string {
 
 // Close closes the TCP server
 func (self *ChordTable) Close() {
-	log.Println("Closing")
+	self.Println("Closing")
 	go self.server.Close()
 }
 
@@ -359,7 +385,10 @@ func newChordServer(id uint, port int, bootstrap DhtAddresses) (*ChordTable, err
 			Ip:         ip[0],
 			Port:       port,
 			seeds:      seeds,
-			randomizer: NewRandomizer("see you in hell"),
+			randomizer: NewRandomizer("okayc:w"),
+			Responses:  make(chan SeekResponse),
+			ChangeLog:  make(chan string),
+			Closed:     make(chan bool),
 		}
 
 		// Return with everyything good

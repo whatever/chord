@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestSeek(t *testing.T) {
+func TestSeekBootstrap(t *testing.T) {
 	alice, _ := NewChordServer(8000, nil)
 	alice.Listen()
 	defer alice.Close()
@@ -16,11 +16,10 @@ func TestSeek(t *testing.T) {
 
 	resp := bob.RequestSeek(DhtAddress{alice.Ip, alice.Port})
 
-	// XXX: Make this channel live to help synchronize events
-	<-bob.Responses
+	change := <-bob.ChangeLog
 
 	if resp != nil {
-		t.Error("response should contain type everything is okay")
+		t.Error("response should contain type everything is okay", resp)
 	}
 }
 

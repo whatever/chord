@@ -1,7 +1,6 @@
 package dht
 
 import (
-	"errors"
 	"log"
 )
 
@@ -30,11 +29,11 @@ type SeekResponse struct {
 
 // SendSeek sends a request to find out where a node belongs, and
 // returns a token to verify the authenticity of the future request
-func SendSeek(from, to ChordNode, token string) (StatusResponse, error) {
+func SendSeek(from ChordNode, to DhtAddress, token string) (StatusResponse, error) {
 
-	encoded := EncodeStruct(SeekRequest{"seek", from, "ayyyy"})
+	encoded := EncodeStruct(SeekRequest{"seek?", from, "ayyyy"})
 
-	r, err := sendMessage(to.GetAddress(), encoded)
+	r, err := sendMessage(to, encoded)
 
 	log.Println(r, err)
 
@@ -47,7 +46,12 @@ func SendSeek(from, to ChordNode, token string) (StatusResponse, error) {
 
 // RequestSeek sends a request to find where it belongs in the network
 func (self *ChordTable) RequestSeek(addr DhtAddress) error {
-	return errors.New("FAILED")
+	SendSeek(
+		self.GetNode(),
+		addr,
+		"what",
+	)
+	return nil
 }
 
 // HandleSeek
@@ -58,18 +62,30 @@ func (self *ChordTable) HandleSeek(req SeekRequest) (StatusResponse, error) {
 		Token:   "---",
 	}
 
-	var node ChordNode
+	node := self.GetNode()
 
 	if self.IsSuccessor(req.Source) {
+		var next *ChordNode
+
+		if self.Next == nil {
+			next = &node
+		} else {
+			next = self.Next
+		}
+
+		prev := &node
+
 		r := SeekResponse{
 			Type:   "seek!",
-			Source: nil,
-			Prev:   &node,
-			Next:   self.Next,
+			Source: &req.Source,
+			Prev:   prev,
+			Next:   next,
 			Token:  req.Token,
 		}
-		msg, _ := sendMessage(req.Source.GetAddress(), EncodeStruct(r))
-		log.Println("MSG:", msg)
+		sendMessage(
+			req.Source.GetAddress(),
+			EncodeStruct(r),
+		)
 	} else {
 	}
 
