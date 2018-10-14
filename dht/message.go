@@ -76,7 +76,6 @@ type InfoResponse struct {
 func EncodeStruct(decoded interface{}) (encoded []byte) {
 	encoded, err := json.Marshal(decoded)
 	if err != nil {
-		log.Println("!!!!")
 		return encoded
 	}
 	return encoded

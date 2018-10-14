@@ -6,17 +6,20 @@ import (
 )
 
 func TestSeek(t *testing.T) {
-	s, _ := NewChordServer(8000, nil)
-	s.Listen()
-	defer s.Close()
+	alice, _ := NewChordServer(8000, nil)
+	alice.Listen()
+	defer alice.Close()
 
-	resp, _ := SendSeek(
-		ChordNode{23, "127.0.0.1", 9000},
-		ChordNode{24, "127.0.0.1", 9001},
-		"Busted",
-	)
+	bob, _ := NewChordServer(8001, nil)
+	bob.Listen()
+	defer bob.Close()
 
-	if resp != "Busted" {
+	resp := bob.RequestSeek(DhtAddress{alice.Ip, alice.Port})
+
+	// XXX: Make this channel live to help synchronize events
+	<-bob.Responses
+
+	if resp != nil {
 		t.Error("response should contain type everything is okay")
 	}
 }

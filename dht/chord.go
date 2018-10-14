@@ -41,7 +41,8 @@ type ChordTable struct {
 	Next *ChordNode
 
 	// list of nodes that I've met in the past
-	seen []ChordNode
+	seen      []ChordNode
+	Responses chan bool
 
 	// This tells me who I belong to
 	belonger   chan JoinedResponse
@@ -143,7 +144,20 @@ func (self *ChordTable) handle(conn net.Conn) {
 		res := self.HandlePing(req)
 		n, err = conn.Write([]byte(EncodeWireMessage(res)))
 
-	// Get some details about the node
+	// SEEK: Finding
+	case "seek":
+		req := SeekRequest{}
+		DecodeStruct(buf, &req)
+		res, _ := self.HandleSeek(req)
+		log.Println("???", req)
+		n, err = conn.Write([]byte(EncodeWireMessage(res)))
+
+	// JOIN: Find and join in a single operation (might have incosistencies)
+	case "join":
+		resp, _ := self.handleJoin(msg)
+		n, err = conn.Write(EncodeStruct(resp))
+
+	// INFO: Get some details about the node
 	case "info":
 		r := InfoResponse{
 			Id:   self.Id,
@@ -152,17 +166,17 @@ func (self *ChordTable) handle(conn net.Conn) {
 		}
 		n, err = conn.Write(r.Bytes())
 
-	// Kick off a topology scan
+	// TOPOLOGY: Kick off a topology scan
 	case "topology":
 		req := TopologyRequest{}
 		DecodeStruct(buf, &req)
 		self.handleTopology(req)
 		n, err = conn.Write([]byte(string(self.Id)))
-	case "join":
-		resp, _ := self.handleJoin(msg)
-		n, err = conn.Write(EncodeStruct(resp))
+
+	// DEFAULT: x_x
 	default:
 		n, err = conn.Write([]byte("IGNORED"))
+		fmt.Println("!!!<<<")
 	}
 
 	_ = n
